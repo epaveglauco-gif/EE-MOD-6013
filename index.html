@@ -290,8 +290,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
       <div id="dEnvio" class="stack" style="gap:8px"></div>
       <p class="muted">A classificação é comunicada pelo professor. Não feche a página enquanto o envio estiver a decorrer.</p>
     </div>
-    <div class="panel stack" id="fallback">
-      <h3>Se o envio automático falhar</h3>
+    <details class="panel" id="fallback">
+      <summary><strong id="fbTitle">Código de segurança</strong></summary>
+      <div class="stack" style="margin-top:12px">
       <p>Envie o código abaixo por email para <strong class="mono" id="profMail"></strong>, ou mostre este ecrã ao professor.</p>
       <div class="code" id="dCode"></div>
       <div class="row stackm">
@@ -300,7 +301,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
         <button class="btn" type="button" id="bRetry">Tentar enviar outra vez</button>
       </div>
       <p class="muted" id="copyMsg"></p>
-    </div>
+      </div>
+    </details>
     <div class="row"><button class="link" type="button" id="bHome">Voltar ao início</button></div>
   </div>
 </section>
@@ -647,9 +649,11 @@ function showDone(){
 function paintEnvio(){
   const e=st.envio||{},row=(lbl,s)=>{const m={"ok":["ok","Recebido"],"a enviar":["wait","A enviar…"],"falhou":["bad","Não foi possível"],"indisponivel":["wait","Indisponível neste acesso"],"desligado":["wait","Desligado"]}[s]||["wait",s];
     return `<div class="row"><span class="stamp ${m[0]}">${m[1]}</span><span>${lbl}</span></div>`};
-  $("dEnvio").innerHTML=row("Registo para o professor (página do teste)",e.db)+row("Email automático para o professor",e.mail);
-  const ok=e.db==="ok"||e.mail==="ok";
-  $("fallback").querySelector("h3").textContent=ok?"Cópia de segurança":"O envio automático não funcionou";
+  const vis=[["Registo para o professor",e.db],["Email para o professor",e.mail]].filter(x=>x[1]!=="indisponivel"&&x[1]!=="desligado");
+  $("dEnvio").innerHTML=vis.length?vis.map(x=>row(x[0],x[1])).join(""):`<p>Este acesso não permite o envio automático. Use o código de segurança abaixo.</p>`;
+  const ok=e.db==="ok"||e.mail==="ok",busy=e.db==="a enviar"||e.mail==="a enviar";
+  $("fbTitle").textContent=ok?"Código de segurança (não é preciso fazer nada)":busy?"Código de segurança":"O envio automático não funcionou: envie este código ao professor";
+  $("fallback").open=!ok&&!busy;
 }
 const timeout=(p,ms)=>Promise.race([p,new Promise((_,j)=>setTimeout(()=>j(new Error("timeout")),ms))]);
 async function sendDb(){
@@ -677,7 +681,10 @@ async function sendMail(){
   c.det.forEach(d=>f.append(`Q${String(d.n).padStart(2,"0")} ${d.id} (${LVL[d.lvl]})`,`${fmt(d.pts)}/${fmt(d.max)} — resposta: ${d.resp} — correta: ${d.cert}${d.rev?" — REVER":""}`));
   f.append("Código de entrega",st.code);
   const r=await timeout(fetch(CFG.URL_ENVIO,{method:"POST",headers:{Accept:"application/json"},body:f}),15000);
-  if(!r.ok)throw new Error("http "+r.status);return"ok";
+  if(!r.ok)throw new Error("http "+r.status);
+  let j=null;try{j=await r.json()}catch(e){}
+  if(j&&String(j.success)==="false")throw new Error(j.message||"recusado");
+  return"ok";
 }
 async function send(){
   st.envio={db:"a enviar",mail:CFG.URL_ENVIO?"a enviar":"desligado"};paintEnvio();
