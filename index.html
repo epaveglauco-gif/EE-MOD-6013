@@ -1,0 +1,750 @@
+<title>Teste 6013 · Cascata e Acoplamento</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: uma coluna de leitura; faixa de placa de circuito no topo (como a sebenta), barra fixa com relógio e barra de botões fixa em baixo no telemóvel. Paleta = sebenta UFCD 6013. */
+:root{
+  --board:#0F3D2E; --board-2:#175243; --board-3:#0B2E22; --on-board:#FFFFFF; --on-board-soft:#BFD8CB;
+  --copper:#C87A3E; --copper-light:#E3A466; --gold:#E7B84E; --on-copper:#1A1006;
+  --paper:#FAF6EC; --paper-2:#F1EAD8; --surface:#FFFFFF;
+  --ink:#1C2420; --ink-soft:#4B564F; --line:#DDD5C0; --heading:#0F3D2E; --kicker:#A8612C;
+  --sel:#F6E3CF; --ok:#2E8B57; --ok-soft:#DDEFE3; --bad:#B5322B; --bad-soft:#F6DEDB; --warn:#9A6400;
+  --veil:rgba(11,46,34,.6); --radius:14px;
+  --display:'Space Grotesk',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  --body:'IBM Plex Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#101713; --paper-2:#17221C; --surface:#1B2821;
+  --ink:#E4ECE7; --ink-soft:#A9B8AF; --line:#2B3B32; --heading:#E7C27A; --kicker:#E3A466;
+  --sel:#3A2A1C; --ok:#6FCB94; --ok-soft:#173326; --bad:#F08A80; --bad-soft:#3A1D1A; --warn:#F2B84B; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#101713; --paper-2:#17221C; --surface:#1B2821;
+  --ink:#E4ECE7; --ink-soft:#A9B8AF; --line:#2B3B32; --heading:#E7C27A; --kicker:#E3A466;
+  --sel:#3A2A1C; --ok:#6FCB94; --ok-soft:#173326; --bad:#F08A80; --bad-soft:#3A1D1A; --warn:#F2B84B; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--paper);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+::selection{background:var(--gold);color:var(--board-3)}
+.wrap{max-width:820px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+h1,h2,h3{font-family:var(--display);color:var(--heading);margin:0;letter-spacing:-.01em;line-height:1.15;text-wrap:balance}
+h1{font-size:clamp(1.55rem,5.5vw,2.5rem)}
+h2{font-size:clamp(1.15rem,3.6vw,1.4rem)}
+h3{font-size:1.05rem}
+p{margin:0}
+.eyebrow{font-family:var(--mono);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--kicker);font-weight:600}
+.muted{color:var(--ink-soft)}
+.mono{font-family:var(--mono)}
+.stack{display:flex;flex-direction:column;gap:16px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;min-width:0}
+.panel.soft{background:var(--paper-2)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px}
+label.f{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:.95rem;min-width:0}
+input[type=text],input[type=password],textarea,select{font:inherit;font-size:16px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:12px;width:100%;min-width:0;min-height:48px}
+textarea{min-height:130px;resize:vertical}
+select{appearance:auto}
+input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,.opt:focus-within,summary:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+.btn{font-family:var(--display);font-weight:600;font-size:1rem;border-radius:8px;padding:12px 20px;min-height:48px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;touch-action:manipulation}
+.btn:hover{border-color:var(--copper)}
+.btn.primary{background:var(--copper);color:var(--on-copper);border-color:var(--copper)}
+.btn.primary:hover{background:var(--copper-light)}
+.btn.board{background:var(--board);color:var(--on-board);border-color:var(--board)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.link{background:none;border:0;color:var(--ink-soft);font:inherit;text-decoration:underline;cursor:pointer;padding:12px 4px;min-height:44px}
+.err{color:var(--bad);font-weight:600;min-height:1.4em}
+ul.rules{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px}
+
+/* faixa de capa (igual ao topo da sebenta) */
+.hero{background:radial-gradient(ellipse at 20% 0%,#124434 0%,var(--board) 55%,var(--board-3) 100%);color:var(--on-board)}
+.hero .in{max-width:820px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 28px;display:grid;grid-template-columns:1fr auto;gap:18px;align-items:end}
+.hero .eyebrow{color:var(--gold)}
+.hero h1{color:var(--on-board)}
+.hero .sub{color:var(--on-board-soft)}
+.meta{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-family:var(--mono);font-size:.78rem;padding:4px 10px;border-radius:999px;background:var(--paper-2);color:var(--ink);border:1px solid var(--line);white-space:nowrap}
+.hero .chip{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:var(--on-board)}
+.trace{width:150px;height:60px}
+.trace path{fill:none;stroke:var(--gold);stroke-width:2.5}
+.trace circle{fill:var(--copper)}
+table.dist{border-collapse:collapse;width:100%;font-size:.92rem}
+table.dist td,table.dist th{padding:8px;border-bottom:1px solid var(--line);text-align:left}
+table.dist th{font-family:var(--mono);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+summary{cursor:pointer;min-height:32px;list-style-position:inside}
+
+/* barra do teste */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--board-3)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--board-3);color:var(--on-board)}
+.bar .in{max-width:820px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;display:flex;gap:12px;align-items:center;justify-content:space-between}
+.bar .who{font-size:.85rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--on-board-soft)}
+.bar .who b{color:var(--on-board);font-family:var(--mono)}
+.clock{font-family:var(--mono);font-size:1.25rem;font-weight:600;font-variant-numeric:tabular-nums;padding:2px 10px;border-radius:6px;background:rgba(255,255,255,.08);color:var(--gold);flex:none}
+.clock.low{background:var(--bad);color:#fff}
+.prog{height:4px;background:rgba(255,255,255,.12)}
+.prog i{display:block;height:100%;background:var(--copper);width:0;transition:width .3s}
+
+/* navegação */
+.nav summary{font-weight:600;display:flex;justify-content:space-between;gap:8px;list-style:none}
+.nav summary::-webkit-details-marker{display:none}
+.nav summary::after{content:"▾";color:var(--copper)}
+.nav[open] summary::after{content:"▴"}
+.navgrid{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.navsec{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.navsec b{font-family:var(--mono);font-size:.74rem;color:var(--kicker);width:1.6em}
+.nq{font-family:var(--mono);font-size:.9rem;width:44px;height:44px;border-radius:8px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer;font-variant-numeric:tabular-nums;touch-action:manipulation}
+.nq.done{background:var(--sel);border-color:var(--copper)}
+.nq.cur{background:var(--board);color:var(--on-board);border-color:var(--board)}
+
+/* questão */
+#qBox{scroll-margin-top:calc(70px + env(safe-area-inset-top,0px))}
+.qhead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline}
+.qtxt{font-size:1.06rem;max-width:65ch}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{display:flex;gap:12px;align-items:flex-start;padding:14px;min-height:52px;border:1px solid var(--line);border-radius:10px;cursor:pointer;background:var(--paper);touch-action:manipulation}
+.opt:hover{border-color:var(--copper)}
+.opt input{margin-top:3px;width:20px;height:20px;flex:none;accent-color:var(--copper)}
+.opt .k{font-family:var(--mono);font-weight:600;color:var(--kicker)}
+.opt.sel{border-color:var(--copper);background:var(--sel)}
+.vf{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vf .opt{justify-content:center;align-items:center;font-weight:600}
+.vf .opt input{margin-top:0}
+.assoc{display:flex;flex-direction:column;gap:10px}
+.arow{display:grid;grid-template-columns:1fr minmax(160px,230px);gap:10px 12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+.arow span{min-width:0}
+.diag{background:var(--paper-2);border:1px dashed var(--line);border-radius:10px;padding:10px}
+.diag svg{display:block;width:100%;height:auto;margin:0 auto}
+.diag .v{display:none;max-width:300px}
+.diag .blk{fill:var(--surface);stroke:var(--board-2);stroke-width:2}
+.diag .w{stroke:var(--copper);stroke-width:2;fill:none}
+.diag .ah{fill:var(--copper)}
+.diag text{fill:var(--ink);font-family:var(--mono);font-size:13px}
+.diag text.s{fill:var(--ink-soft);font-size:11px}
+.part{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-left:3px solid var(--copper);background:var(--paper-2);border-radius:0 8px 8px 0}
+.unitin{display:flex;align-items:center;gap:8px;max-width:300px}
+.unitin span{font-family:var(--mono);color:var(--ink-soft);white-space:nowrap}
+.foot{display:flex;gap:10px;justify-content:space-between;align-items:center}
+.foot .row{flex-wrap:nowrap}
+
+/* modal na página */
+.veil{position:fixed;inset:0;background:var(--veil);display:flex;align-items:center;justify-content:center;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:20}
+.veil .panel{max-width:460px;width:100%}
+
+/* entrega */
+.stamp{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-weight:600;padding:6px 12px;border-radius:6px;white-space:nowrap}
+.stamp.ok{background:var(--ok-soft);color:var(--ok)}
+.stamp.bad{background:var(--bad-soft);color:var(--bad)}
+.stamp.wait{background:var(--paper-2);color:var(--ink-soft)}
+.code{font-family:var(--mono);font-size:.78rem;word-break:break-all;background:var(--paper-2);padding:10px;border-radius:8px;max-height:140px;overflow:auto}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:.95rem}
+.kv dt{color:var(--ink-soft)} .kv dd{margin:0;font-weight:600;min-width:0;overflow-wrap:anywhere}
+
+/* professor */
+.tbl{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tbl table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.tbl th{font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft)}
+.tbl tr.click{cursor:pointer} .tbl tr.click:hover td{background:var(--paper-2)}
+.pts{font-family:var(--mono);font-weight:600;white-space:nowrap}
+.pts.full{color:var(--ok)} .pts.zero{color:var(--bad)} .pts.part{color:var(--warn)}
+.big{font-family:var(--display);font-size:2.4rem;color:var(--heading);line-height:1}
+.lvl{font-family:var(--mono);font-size:.72rem;padding:2px 6px;border-radius:4px;background:var(--paper-2);white-space:nowrap}
+
+/* ===== telemóvel ===== */
+@media (max-width:600px){
+  .wrap{padding-block:16px 32px}
+  .panel{padding:16px}
+  .hero .in{grid-template-columns:1fr;padding-block:24px 20px}
+  .trace{display:none}
+  .arow{grid-template-columns:1fr}
+  .diag .h{display:none} .diag .v{display:block}
+  .vf .opt{min-height:60px}
+  #scTest .wrap{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+  .foot{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);
+        padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));
+        padding-block:10px max(10px,env(safe-area-inset-bottom,0px))}
+  .foot .row{flex:1;gap:8px}
+  .foot .row .btn{flex:1;padding-inline:10px}
+  .foot #bSubmit{flex:none;padding-inline:14px}
+  .bar .who .nm{display:none}
+  .clock{font-size:1.15rem}
+  .kv{grid-template-columns:1fr;gap:0}
+  .kv dd{margin-bottom:8px}
+  .row.stackm{flex-direction:column;align-items:stretch}
+  .row.stackm .btn{width:100%}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<!-- ================= INÍCIO ================= -->
+<section id="scStart">
+  <header class="hero">
+    <div class="in">
+      <div class="stack" style="gap:10px">
+        <div class="eyebrow">UFCD 6013 · Amplificadores com Transístores · Parte 3</div>
+        <h1>Teste: montagem em cascata e acoplamento entre andares</h1>
+        <p class="sub">Disciplina E.E. · Prof. Glauco Barbosa</p>
+        <div class="meta"><span class="chip">20 questões</span><span class="chip">40 min</span><span class="chip">20 valores</span></div>
+      </div>
+      <svg class="trace" viewBox="0 0 150 60" aria-hidden="true"><path d="M4 30h18l6-6 6 12 6-6h16l6-14 6 28 6-14h16l6-24 6 48 6-24h20"/><circle cx="4" cy="30" r="4"/><circle cx="146" cy="30" r="4"/></svg>
+    </div>
+  </header>
+  <div class="wrap stack">
+    <div id="resumeBox" class="panel stack" hidden>
+      <h2>Teste em curso</h2>
+      <p id="resumeTxt"></p>
+      <div class="row"><button class="btn primary" type="button" id="bResume">Retomar o teste</button></div>
+    </div>
+
+    <div id="doneBox" class="panel stack" hidden>
+      <h2>Já entregou este teste neste dispositivo</h2>
+      <div class="row"><button class="btn" type="button" id="bSeeDone">Ver comprovativo de entrega</button></div>
+    </div>
+
+    <form class="panel stack" id="fStart" novalidate>
+      <h2>Identificação</h2>
+      <div class="grid2">
+        <label class="f" for="inNome">Nome completo<input id="inNome" type="text" autocomplete="name" maxlength="80"></label>
+        <label class="f" for="inNum">N.º<input id="inNum" type="text" inputmode="numeric" maxlength="4"></label>
+        <label class="f" for="inTurma">Turma<input id="inTurma" type="text" maxlength="10" placeholder="ex.: 2C"></label>
+        <label class="f" for="inCodigo">Código de acesso (dado pelo professor)<input id="inCodigo" type="password" autocomplete="off" maxlength="30"></label>
+      </div>
+      <div class="stack" style="gap:8px">
+        <h3>Regras</h3>
+        <ul class="rules">
+          <li>Tem <strong>40 minutos</strong>. O relógio começa quando carregar em «Começar». No fim do tempo o teste é entregue automaticamente.</li>
+          <li>O teste tem 5 partes: escolha múltipla, verdadeiro/falso, associação, resposta direta e problemas de cálculo.</li>
+          <li>Pode usar calculadora. Nos problemas, escreva só o número na unidade pedida (use vírgula ou ponto).</li>
+          <li>Não saia desta página: cada saída fica registada e é comunicada ao professor.</li>
+          <li>As classificações não aparecem no fim. As respostas seguem para o professor, que comunicará o resultado.</li>
+        </ul>
+      </div>
+      <p class="err" id="startErr" role="alert"></p>
+      <div class="row stackm" style="justify-content:space-between">
+        <button class="btn primary" type="submit" id="bStart">Começar o teste</button>
+        <button class="link" type="button" id="toTeacher">Modo professor</button>
+      </div>
+    </form>
+
+    <details class="panel soft">
+      <summary><strong>Distribuição das questões</strong></summary>
+      <div style="overflow-x:auto;margin-top:12px">
+      <table class="dist">
+        <tr><th>Parte</th><th>Tipo</th><th>Questões</th></tr>
+        <tr><td>A</td><td>Escolha múltipla</td><td>5</td></tr>
+        <tr><td>B</td><td>Verdadeiro / Falso</td><td>4</td></tr>
+        <tr><td>C</td><td>Associação de colunas</td><td>2</td></tr>
+        <tr><td>D</td><td>Resposta direta</td><td>2</td></tr>
+        <tr><td>E</td><td>Problemas (ganhos e tensões de saída)</td><td>7</td></tr>
+      </table></div>
+      <p class="muted" style="margin-top:10px">10 questões fáceis (0,8 val.), 6 médias (1,0 val.) e 4 difíceis (1,5 val.). Os valores dos problemas mudam de aluno para aluno.</p>
+    </details>
+  </div>
+</section>
+
+<!-- ================= TESTE ================= -->
+<section id="scTest" hidden>
+  <div class="bar">
+    <div class="in">
+      <div class="who" id="barWho"></div>
+      <div class="clock" id="clock" aria-live="off">40:00</div>
+    </div>
+    <div class="prog"><i id="progBar"></i></div>
+  </div>
+  <div class="wrap stack">
+    <details class="panel nav" id="navBox"><summary><span>Todas as questões</span><span class="muted mono" id="navCount"></span></summary><nav class="navgrid" id="nav" aria-label="Questões"></nav></details>
+    <article class="panel stack" id="qBox" aria-live="polite"></article>
+    <div class="foot">
+      <div class="row"><button class="btn" type="button" id="bPrev">Anterior</button><button class="btn" type="button" id="bNext">Seguinte</button></div>
+      <button class="btn board" type="button" id="bSubmit">Entregar</button>
+    </div>
+    <p class="muted" id="answeredTxt"></p>
+  </div>
+</section>
+
+<div class="veil" id="confirm" hidden>
+  <div class="panel stack" role="dialog" aria-modal="true" aria-labelledby="cTitle">
+    <h2 id="cTitle">Entregar o teste?</h2>
+    <p id="cText"></p>
+    <div class="row stackm" style="justify-content:flex-end"><button class="btn" type="button" id="cNo">Continuar a responder</button><button class="btn board" type="button" id="cYes">Entregar</button></div>
+  </div>
+</div>
+
+<!-- ================= ENTREGUE ================= -->
+<section id="scDone" hidden>
+  <div class="wrap stack">
+    <div class="eyebrow">Comprovativo de entrega</div>
+    <h1>Teste entregue</h1>
+    <p class="muted" id="dReason"></p>
+    <div class="panel stack">
+      <dl class="kv">
+        <dt>Nome</dt><dd id="dNome"></dd>
+        <dt>N.º / Turma</dt><dd id="dNum"></dd>
+        <dt>Questões respondidas</dt><dd id="dResp"></dd>
+        <dt>Início · Entrega</dt><dd id="dHoras"></dd>
+      </dl>
+    </div>
+    <div class="panel stack">
+      <h2>Envio ao professor</h2>
+      <div id="dEnvio" class="stack" style="gap:8px"></div>
+      <p class="muted">A classificação é comunicada pelo professor. Não feche a página enquanto o envio estiver a decorrer.</p>
+    </div>
+    <div class="panel stack" id="fallback">
+      <h3>Se o envio automático falhar</h3>
+      <p>Envie o código abaixo por email para <strong class="mono" id="profMail"></strong>, ou mostre este ecrã ao professor.</p>
+      <div class="code" id="dCode"></div>
+      <div class="row stackm">
+        <button class="btn" type="button" id="bCopy">Copiar código</button>
+        <a class="btn" id="bMail" href="#" target="_blank" rel="noopener">Abrir email</a>
+        <button class="btn" type="button" id="bRetry">Tentar enviar outra vez</button>
+      </div>
+      <p class="muted" id="copyMsg"></p>
+    </div>
+    <div class="row"><button class="link" type="button" id="bHome">Voltar ao início</button></div>
+  </div>
+</section>
+
+<!-- ================= PROFESSOR ================= -->
+<section id="scTeacher" hidden>
+  <div class="wrap stack">
+    <div class="eyebrow">Modo professor</div>
+    <h1>Correção e entregas</h1>
+    <form class="panel stack" id="fPin" novalidate>
+      <label class="f" for="inPin" style="max-width:260px">PIN do professor<input id="inPin" type="password" autocomplete="off" maxlength="20"></label>
+      <p class="err" id="pinErr" role="alert"></p>
+      <div class="row"><button class="btn primary" type="submit">Entrar</button><button class="link" type="button" id="bBack1">Voltar</button></div>
+    </form>
+    <div id="tPanel" class="stack" hidden>
+      <div class="panel stack">
+        <div class="row" style="justify-content:space-between"><h2>Entregas recebidas</h2><div class="row"><button class="btn" type="button" id="bReload">Atualizar</button><button class="btn" type="button" id="bCsv">Copiar tabela (CSV)</button></div></div>
+        <p class="muted" id="tDbMsg">A carregar…</p>
+        <div class="tbl" id="tList"></div>
+      </div>
+      <div class="panel stack">
+        <h2>Corrigir a partir de um código</h2>
+        <p class="muted">Cole aqui o código que o aluno enviou por email (um por linha para corrigir vários).</p>
+        <label class="f" for="inCode">Código(s) de entrega<textarea id="inCode" spellcheck="false"></textarea></label>
+        <p class="err" id="codeErr" role="alert"></p>
+        <div class="row"><button class="btn primary" type="button" id="bDecode">Corrigir</button></div>
+      </div>
+      <div id="tDetail" class="stack"></div>
+      <div class="panel stack">
+        <h3>Configuração atual</h3>
+        <p class="muted" id="tCfg"></p>
+      </div>
+      <div class="row"><button class="link" type="button" id="bBack2">Sair do modo professor</button></div>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ====== CONFIGURAÇÃO DO PROFESSOR ====== */
+const CFG={
+  CODIGO:"CASCATA",            // código de acesso a dar aos alunos
+  PIN:"6013",                  // PIN do modo professor
+  MIN:40,                      // duração em minutos
+  EMAIL:"epave.glauco@gmail.com",
+  URL_ENVIO:"https://formsubmit.co/ajax/epave.glauco@gmail.com", // funciona quando o ficheiro é alojado fora do claude.ai
+  SEG:"epave-6013-cascata-gB7",
+  NOME:"Teste UFCD 6013 – Montagem em cascata e acoplamento",
+  ID:"6013casc1"
+};
+const PTS={F:0.8,M:1,D:1.5}, LVL={F:"Fácil",M:"Média",D:"Difícil"};
+const SECS=[
+  {id:"A",nome:"Escolha múltipla"},{id:"B",nome:"Verdadeiro ou falso"},{id:"C",nome:"Associação de colunas"},
+  {id:"D",nome:"Resposta direta"},{id:"E",nome:"Problemas"}];
+
+/* ====== utilidades ====== */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt=(v,d=2)=>{const r=Math.round(v*10**d)/10**d;return String(r).replace(".",",")};
+const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/\s+/g," ").trim();
+const hhmm=t=>t?new Date(t).toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"}):"—";
+function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const pick=(a,r)=>a[Math.floor(r()*a.length)];
+function shuffle(a,r){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+function parseNum(s){s=String(s||"").trim().replace(/\s/g,"").replace(",",".");if(!/^[-+]?\d*\.?\d+(e[-+]?\d+)?$/i.test(s))return NaN;return parseFloat(s)}
+
+/* ====== esquema de blocos em cascata ====== */
+function cascade(blocks,inL,outL){
+  const n=blocks.length;
+  /* horizontal (ecrã largo) */
+  const bw=104,gap=50,y=22,h=56,x0=70,W=x0+n*bw+(n-1)*gap+80,H=104;
+  let s=`<svg class="h" viewBox="0 0 ${W} ${H}" role="img" aria-label="Esquema de ${n} andares em cascata">`;
+  const arrow=(x1,x2)=>`<line class="w" x1="${x1}" y1="${y+h/2}" x2="${x2-7}" y2="${y+h/2}"/><path class="ah" d="M${x2} ${y+h/2} l-9 -5 v10z"/>`;
+  s+=`<text x="4" y="${y+h/2-8}">${inL}</text>`+arrow(4,x0);
+  blocks.forEach((b,i)=>{const x=x0+i*(bw+gap);
+    s+=`<rect class="blk" x="${x}" y="${y}" width="${bw}" height="${h}" rx="6"/>`;
+    s+=`<text x="${x+bw/2}" y="${y+24}" text-anchor="middle">${b[0]}</text>`;
+    if(b[1])s+=`<text class="s" x="${x+bw/2}" y="${y+42}" text-anchor="middle">${b[1]}</text>`;
+    s+=`<text class="s" x="${x+bw/2}" y="${y+h+18}" text-anchor="middle">${i+1}.º andar</text>`;
+    if(i<n-1)s+=arrow(x+bw,x+bw+gap);});
+  const xe=x0+n*bw+(n-1)*gap;
+  s+=arrow(xe,W-6)+`<text x="${W-6}" y="${y+h/2-8}" text-anchor="end">${outL}</text></svg>`;
+  /* vertical (telemóvel) */
+  const VW=300,cx=150,vb=160,vh=50,vg=34,top=26,VH=top+n*vh+(n-1)*vg+52;
+  let v=`<svg class="v" viewBox="0 0 ${VW} ${VH}" role="img" aria-label="Esquema de ${n} andares em cascata">`;
+  const down=(y1,y2)=>`<line class="w" x1="${cx}" y1="${y1}" x2="${cx}" y2="${y2-7}"/><path class="ah" d="M${cx} ${y2} l-5 -9 h10z"/>`;
+  v+=`<text x="${cx+10}" y="14">${inL}</text>`+down(2,top);
+  blocks.forEach((b,i)=>{const yy=top+i*(vh+vg);
+    v+=`<rect class="blk" x="${cx-vb/2}" y="${yy}" width="${vb}" height="${vh}" rx="6"/>`;
+    v+=`<text x="${cx}" y="${yy+(b[1]?21:30)}" text-anchor="middle">${b[0]}</text>`;
+    if(b[1])v+=`<text class="s" x="${cx}" y="${yy+38}" text-anchor="middle">${b[1]}</text>`;
+    v+=`<text class="s" x="${cx-vb/2-8}" y="${yy+vh/2+4}" text-anchor="end">${i+1}.º</text>`;
+    if(i<n-1)v+=down(yy+vh,yy+vh+vg);});
+  const ye=top+n*vh+(n-1)*vg;
+  v+=down(ye,ye+30)+`<text x="${cx+10}" y="${ye+46}">${outL}</text></svg>`;
+  return `<div class="diag">${s}${v}</div>`;
+}
+const given=list=>`<div class="given">${list.map(([k,v])=>`<div><small>${k}</small>${v}</div>`).join("")}</div>`;
+
+/* ====== BANCO DE QUESTÕES ====== */
+const BANK=[
+ /* ---- A: escolha múltipla ---- */
+ {id:"E1",lvl:"F",sec:"A",type:"mc",txt:"Porque é que um recetor de rádio ou de televisão usa vários andares amplificadores ligados em cascata?",
+  opts:["Porque um único andar não consegue dar o ganho necessário para amplificar milhares de vezes o sinal da antena",
+        "Porque a ligação em cascata dispensa a polarização dos transístores",
+        "Porque o sinal da antena chega com vários volts e tem de ser dividido por vários andares",
+        "Porque cada andar elimina metade do ruído do sinal"],ok:0},
+ {id:"E2",lvl:"F",sec:"A",type:"mc",txt:"Numa montagem em cascata, a saída do 1.º andar liga-se:",
+  opts:["À entrada do 2.º andar","À saída do 2.º andar","À massa, através de um condensador","Diretamente à carga final (altifalante)"],ok:0},
+ {id:"E6",lvl:"F",sec:"A",type:"mc",txt:"Como se chama a ligação entre dois andares amplificadores, feita para que o sinal seja amplificado sucessivamente?",
+  opts:["Acoplamento","Desacoplamento","Realimentação","Polarização"],ok:0},
+ {id:"E9",lvl:"F",sec:"A",type:"mc",txt:"Na expressão do ganho total G = S<sub>saída</sub> / S<sub>entrada</sub>, as amplitudes dos sinais são medidas em:",
+  opts:["Valor pico a pico (pp)","Valor médio","Tensão contínua do ponto de funcionamento","Watts"],ok:0},
+ {id:"M4",lvl:"M",sec:"A",type:"mc",txt:"No ponto de funcionamento, a tensão contínua na saída (coletor) do 1.º andar é de 10 V e a base do 2.º andar está polarizada a 3 V. O que acontece se ligarmos estes dois pontos com um simples fio?",
+  opts:["Os 10 V ficam aplicados à base do transístor do 2.º andar e alteram o seu ponto de funcionamento",
+        "O sinal passa sem alterações e o ganho total aumenta",
+        "Os 3 V da base anulam a tensão do coletor e só o 1.º andar deixa de funcionar",
+        "Nada, porque a tensão contínua não passa num condutor"],ok:0},
+ /* ---- B: verdadeiro/falso ---- */
+ {id:"E3",lvl:"F",sec:"B",type:"vf",txt:"Numa cascata, o ganho total em valor absoluto obtém-se somando os ganhos de cada andar.",ok:false},
+ {id:"E4",lvl:"F",sec:"B",type:"vf",txt:"O condensador de acoplamento bloqueia a tensão contínua e deixa passar o sinal alternado.",ok:true},
+ {id:"E5",lvl:"F",sec:"B",type:"vf",txt:"O acoplamento direto deixa passar a tensão contínua de um andar para o seguinte.",ok:true},
+ {id:"E10",lvl:"F",sec:"B",type:"vf",txt:"Os transformadores são o elemento de acoplamento mais usado porque são mais baratos do que os condensadores.",ok:false},
+ /* ---- C: associação ---- */
+ {id:"M1",lvl:"M",sec:"C",type:"assoc",txt:"Associe cada característica ao tipo de acoplamento a que corresponde. Um tipo pode ser usado mais do que uma vez.",
+  rows:["Permite adaptar impedâncias entre andares e dá isolamento galvânico",
+        "Deixa passar a tensão contínua, por isso a polarização dos andares é projetada em conjunto",
+        "Baixo custo e pequeno tamanho; os andares ficam com polarizações independentes",
+        "Usado em amplificadores operacionais, circuitos integrados e montagens Darlington"],
+  cols:["Condensador (RC)","Transformador","Direto"],ok:[1,2,0,2]},
+ {id:"M2",lvl:"M",sec:"C",type:"assoc",txt:"Associe cada definição à grandeza correspondente.",
+  rows:["Carga que o andar apresenta ao andar anterior ou à fonte de sinal",
+        "«Resistência interna» com que o andar alimenta o andar seguinte",
+        "Quantas vezes um andar amplifica o sinal que recebe",
+        "Razão entre o sinal na saída do último andar e o sinal na entrada do primeiro"],
+  cols:["Impedância de entrada (Zin)","Impedância de saída (Zout)","Ganho de tensão do andar (Av)","Ganho total da cascata (G)"],ok:[0,1,2,3]},
+ /* ---- D: resposta direta ---- */
+ {id:"E7",lvl:"F",sec:"D",type:"txt",txt:"Como se chama o condensador usado para ligar a saída de um andar à entrada do andar seguinte?",
+  keys:[["acoplamento","acoplar"]],modelo:"Condensador de acoplamento."},
+ {id:"M6",lvl:"M",sec:"D",type:"txt",txt:"Indique as duas condições que o acoplamento entre andares amplificadores tem de cumprir.",
+  keys:[["continu"," dc"," cc","polariza"],["sinal","alternad"," ac"," ca"]],
+  modelo:"1) A tensão contínua da saída de um andar não pode ser aplicada à entrada do andar seguinte. 2) O sinal (alternado) da saída de um andar tem de passar inalterado para a entrada do seguinte."},
+ /* ---- E: problemas ---- */
+ {id:"E8",lvl:"F",sec:"E",type:"num",gen(r){const g1=pick([20,25,30,40,50],r),g2=pick([10,15,20,40],r);
+   return{html:`<p class="qtxt">Um amplificador tem dois andares em cascata. Calcule o ganho total G do amplificador.</p>`+cascade([["G₁ = "+g1],["G₂ = "+g2]],"vi","vo"),
+   parts:[{label:"Ganho total G",unit:"(sem unidade)",ans:g1*g2,w:1}],p:{g1,g2}}}},
+ {id:"M3",lvl:"M",sec:"E",type:"num",gen(r){const s0=pick([2,4,5,8,10],r),a1=pick([5,8,10],r),a2=pick([10,12,15],r),a3=pick([4,5,6],r);
+   return{html:`<p class="qtxt">O sinal de entrada de um amplificador de três andares tem ${s0} mV<sub>pp</sub>. Calcule a amplitude pico a pico do sinal na saída do 3.º andar.</p>`+cascade([["A₁ = "+a1],["A₂ = "+a2],["A₃ = "+a3]],"S₀ = "+s0+" mVpp","S₃ = ?"),
+   parts:[{label:"Amplitude de saída S₃",unit:"Vpp",ans:s0*a1*a2*a3/1000,w:1}],p:{s0,a1,a2,a3}}}},
+ {id:"M5",lvl:"M",sec:"E",type:"num",gen(r){const a1=pick([12,16,20,26],r),a2=pick([18,20,23.5,30],r),a3=pick([6,10,14],r);
+   return{html:`<p class="qtxt">Os ganhos de três andares em cascata estão expressos em decibéis. Calcule o ganho total da cascata em dB.</p>`+cascade([["A₁ = "+fmt(a1,1)+" dB"],["A₂ = "+fmt(a2,1)+" dB"],["A₃ = "+fmt(a3,1)+" dB"]],"vi","vo"),
+   parts:[{label:"Ganho total",unit:"dB",ans:a1+a2+a3,w:1,tolAbs:0.11}],p:{a1,a2,a3}}}},
+ {id:"H1",lvl:"D",sec:"E",type:"num",gen(r){const s0=pick([10,20,25],r),g1=pick([20,25,40],r),g2=pick([8,10,12,15,16,20],r),vo=s0*g1*g2/1000;
+   return{html:`<p class="qtxt">Pretende-se obter na saída de um amplificador de dois andares um sinal de ${fmt(vo,3)} V<sub>pp</sub>. O sinal de entrada tem ${s0} mV<sub>pp</sub> e o 1.º andar tem ganho ${g1}. Que ganho deve ter o 2.º andar?</p>`+cascade([["G₁ = "+g1],["G₂ = ?"]],"S₀ = "+s0+" mVpp","S₂ = "+fmt(vo,3)+" Vpp"),
+   parts:[{label:"Ganho do 2.º andar G₂",unit:"(sem unidade)",ans:g2,w:1}],p:{s0,g1,g2,vo}}}},
+ {id:"H2",lvl:"D",sec:"E",type:"num",gen(r){const g1=pick([10,20,50,100],r),g2=pick([10,20,40,50],r),G=g1*g2;
+   return{html:`<p class="qtxt">Um amplificador tem dois andares com ganhos de tensão G₁ = ${g1} e G₂ = ${g2}. Calcule o ganho total em valor absoluto e o ganho total em decibéis, sabendo que G(dB) = 20 × log₁₀(G).</p>`+cascade([["G₁ = "+g1],["G₂ = "+g2]],"vi","vo"),
+   parts:[{label:"a) Ganho total G",unit:"(sem unidade)",ans:G,w:.4},{label:"b) Ganho total em dB",unit:"dB",ans:20*Math.log10(G),w:.6,tolAbs:0.3}],p:{g1,g2}}}},
+ {id:"H3",lvl:"D",sec:"E",type:"num",gen(r){const s0=pick([3,5,8,10],r),a1=pick([10,15,20],r),a2=pick([8,10,12],r),a3=pick([5,6,10],r),vcc=12,vo=s0*a1*a2*a3/1000;
+   return{html:`<p class="qtxt">Um amplificador de três andares é alimentado a ${vcc} V, por isso a saída máxima sem distorção é de cerca de ${vcc} V<sub>pp</sub>. O sinal de entrada tem ${s0} mV<sub>pp</sub>.</p>`+cascade([["A₁ = "+a1],["A₂ = "+a2],["A₃ = "+a3]],"S₀ = "+s0+" mVpp","S₃"),
+   parts:[{label:"a) Amplitude que o sinal teria na saída do 3.º andar",unit:"Vpp",ans:vo,w:.6},
+          {label:"b) O último andar entra em corte e saturação (clipping)?",kind:"choice",opts:["Sim, a saída ultrapassa o que a alimentação permite","Não, a saída cabe dentro da alimentação"],ok:vo>vcc?0:1,w:.4}],p:{s0,a1,a2,a3,vcc,vo}}}},
+ {id:"H4",lvl:"D",sec:"E",type:"num",gen(r){const vi=pick([10,20,25],r),a1=pick([20,30,50],r),zo=pick([1,2,5],r),zi=pick([4,8,15],r),a2=pick([10,20],r);
+   const vi2=vi*a1*zi/(zo+zi),vo=vi2*a2/1000;
+   return{html:`<p class="qtxt">Efeito de carga. O 1.º andar tem ganho em vazio A₁ = ${a1} e impedância de saída Z<sub>out1</sub> = ${zo} kΩ. O 2.º andar tem impedância de entrada Z<sub>in2</sub> = ${zi} kΩ e ganho A₂ = ${a2}. A entrada tem ${vi} mV<sub>pp</sub>. Considere o divisor de tensão formado por Z<sub>out1</sub> e Z<sub>in2</sub>.</p>`+
+     cascade([["A₁ = "+a1,"Zout = "+zo+" kΩ"],["A₂ = "+a2,"Zin = "+zi+" kΩ"]],"vi = "+vi+" mVpp","vo = ?"),
+   parts:[{label:"a) Sinal que chega à entrada do 2.º andar, v_i2",unit:"mVpp",ans:vi2,w:.5},{label:"b) Sinal na saída do 2.º andar, v_o",unit:"Vpp",ans:vo,w:.5}],p:{vi,a1,zo,zi,a2}}}}
+];
+
+/* ====== construção do teste a partir da semente ====== */
+function build(seed){
+  const r=rng(seed),items=[];
+  for(const s of SECS){
+    for(const q of shuffle(BANK.filter(b=>b.sec===s.id),r)){
+      const it=Object.assign({},q);
+      if(q.type==="mc")it.ord=shuffle(q.opts.map((_,i)=>i),r);
+      if(q.type==="assoc")it.rord=shuffle(q.rows.map((_,i)=>i),r);
+      if(q.type==="num")Object.assign(it,q.gen(r));
+      items.push(it);
+    }
+  }
+  return items;
+}
+
+/* ====== correção ====== */
+function okNum(v,p){if(isNaN(v))return false;const tol=Math.max(p.tolAbs||0,Math.abs(p.ans)*0.02);return Math.abs(v-p.ans)<=tol+1e-9}
+function grade(it,a){
+  const max=PTS[it.lvl];let f=0,resp="—",cert="",rev=false;
+  if(it.type==="mc"){if(a!=null){resp=it.opts[a];f=a===it.ok?1:0}cert=it.opts[it.ok]}
+  else if(it.type==="vf"){if(a!=null){resp=a?"Verdadeiro":"Falso";f=a===it.ok?1:0}cert=it.ok?"Verdadeiro":"Falso"}
+  else if(it.type==="assoc"){const s=a||[];let c=0;it.rows.forEach((_,i)=>{if(s[i]===it.ok[i])c++});f=c/it.rows.length;
+    resp=it.rows.map((_,i)=>(i+1)+"→"+(s[i]!=null?it.cols[s[i]]:"—")).join("; ");cert=it.rows.map((_,i)=>(i+1)+"→"+it.cols[it.ok[i]]).join("; ")}
+  else if(it.type==="txt"){const t=" "+norm(a)+" ";if(norm(a)){resp=a;rev=true;const hit=it.keys.filter(g=>g.some(k=>t.includes(k))).length;f=hit/it.keys.length}cert=it.modelo}
+  else if(it.type==="num"){const s=a||[];const rs=[],cs=[];
+    it.parts.forEach((p,i)=>{if(p.kind==="choice"){if(s[i]!=null&&s[i]===p.ok)f+=p.w;rs.push(s[i]!=null?p.opts[s[i]]:"—");cs.push(p.opts[p.ok])}
+      else{const v=parseNum(s[i]);if(okNum(v,p))f+=p.w;rs.push(s[i]?s[i]+" "+p.unit.replace(/[()]/g,""):"—");cs.push(fmt(p.ans,3)+" "+p.unit.replace(/[()]/g,""))}});
+    resp=rs.join(" | ");cert=cs.join(" | ")}
+  const pts=Math.round(max*f*100)/100;
+  return{pts,max,resp,cert,rev};
+}
+function answered(it,a){if(a==null)return false;if(it.type==="txt")return norm(a)!=="";if(it.type==="assoc"||it.type==="num")return a.some(x=>x!=null&&x!=="");return true}
+function correct(rec){
+  const items=build(rec.seed);let total=0;const lv={F:[0,0],M:[0,0],D:[0,0]};
+  const det=items.map((it,i)=>{const g=grade(it,rec.ans[it.id]);total+=g.pts;lv[it.lvl][0]+=g.pts;lv[it.lvl][1]+=g.max;return Object.assign({n:i+1,id:it.id,lvl:it.lvl,sec:it.sec,txt:it.txt||"",p:it.p||null},g)});
+  return{nota:Math.round(total*100)/100,lv,det};
+}
+
+/* ====== código de entrega (cifra simples para o email) ====== */
+const enc=new TextEncoder(),dec=new TextDecoder();
+function xor(bytes){const k=enc.encode(CFG.SEG);return bytes.map((b,i)=>b^k[i%k.length]^((i*31)&255))}
+function toCode(rec){const o={v:1,t:CFG.ID,n:rec.nome,u:rec.num,c:rec.turma,s:rec.seed,a:rec.ans,i:rec.ini,f:rec.fim,x:rec.saidas,m:rec.motivo};
+  const b=xor(enc.encode(JSON.stringify(o)));let bin="";b.forEach(c=>bin+=String.fromCharCode(c));
+  return "C6013."+btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
+function fromCode(code){code=code.trim().replace(/\s+/g,"");if(!code.startsWith("C6013."))throw new Error("O código não começa por C6013.");
+  let s=code.slice(6).replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";
+  const bin=atob(s),b=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)b[i]=bin.charCodeAt(i);
+  const o=JSON.parse(dec.decode(xor(b)));return{nome:o.n,num:o.u,turma:o.c,seed:o.s,ans:o.a,ini:o.i,fim:o.f,saidas:o.x,motivo:o.m}}
+
+/* ====== estado ====== */
+const KRUN="t"+CFG.ID+":run",KDONE="t"+CFG.ID+":done";
+let st=null,items=[],cur=0,tick=null;
+function show(id){["scStart","scTest","scDone","scTeacher"].forEach(s=>$(s).hidden=s!==id);window.scrollTo(0,0)}
+function persist(){if(st&&st.status==="ativo")LS.set(KRUN,st)}
+
+/* ====== início ====== */
+function initStart(){
+  const run=LS.get(KRUN),done=LS.get(KDONE);
+  if(run&&run.status==="ativo"){ $("resumeBox").hidden=false;
+    $("resumeTxt").textContent=`${run.nome} (n.º ${run.num}, ${run.turma}) começou às ${hhmm(run.ini)}. O tempo continua a contar.`;}
+  if(done)$("doneBox").hidden=false;
+}
+$("fStart").addEventListener("submit",e=>{e.preventDefault();
+  const nome=$("inNome").value.trim(),num=$("inNum").value.trim(),turma=$("inTurma").value.trim(),cod=$("inCodigo").value;
+  const err=m=>{$("startErr").textContent=m};
+  if(nome.length<3)return err("Escreva o seu nome completo.");
+  if(!num)return err("Escreva o seu número.");
+  if(!turma)return err("Escreva a sua turma.");
+  if(norm(cod)!==norm(CFG.CODIGO))return err("Código de acesso errado. Peça-o ao professor.");
+  err("");
+  const seed=(Date.now()^Math.floor(Math.random()*1e9))>>>0;
+  st={status:"ativo",nome,num,turma,seed,ini:Date.now(),ans:{},saidas:0,cur:0};
+  try{document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen().catch(()=>{})}catch(e){}
+  startTest();
+});
+$("bResume").addEventListener("click",()=>{st=LS.get(KRUN);if(st)startTest()});
+$("bSeeDone").addEventListener("click",()=>{const d=LS.get(KDONE);if(d){st=d;showDone()}});
+
+function startTest(){
+  items=build(st.seed);cur=st.cur||0;persist();
+  $("barWho").innerHTML=`<b id="qCount"></b><span class="nm"> · ${esc(st.nome)} · n.º ${esc(st.num)}</span>`;
+  try{$("navBox").open=matchMedia("(min-width:601px)").matches}catch(e){$("navBox").open=true}
+  show("scTest");renderNav();renderQ();clock();clearInterval(tick);tick=setInterval(clock,1000);
+}
+function left(){return st.ini+CFG.MIN*60000-Date.now()}
+function clock(){if(!st||st.status!=="ativo")return;const ms=left();
+  if(ms<=0){$("clock").textContent="00:00";finish("Tempo esgotado: o teste foi entregue automaticamente.");return}
+  const s=Math.ceil(ms/1000);$("clock").textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+  $("clock").classList.toggle("low",ms<5*60000);}
+document.addEventListener("visibilitychange",()=>{if(document.hidden&&st&&st.status==="ativo"){st.saidas=(st.saidas||0)+1;persist()}});
+
+/* ====== desenho das questões ====== */
+function renderNav(){
+  let h="";SECS.forEach(s=>{h+=`<div class="navsec"><b>${s.id}</b>`;
+    items.forEach((it,i)=>{if(it.sec!==s.id)return;const c=(i===cur?" cur":"")+(answered(it,st.ans[it.id])?" done":"");
+      h+=`<button type="button" class="nq${c}" data-i="${i}" aria-label="Questão ${i+1}">${i+1}</button>`});h+=`</div>`});
+  $("nav").innerHTML=h;
+  const n=items.filter(it=>answered(it,st.ans[it.id])).length;
+  $("progBar").style.width=(n/items.length*100)+"%";
+  $("answeredTxt").textContent=`Respondidas: ${n} de ${items.length}.`;
+  $("navCount").textContent=`${n}/${items.length} respondidas`;
+  const qc=$("qCount");if(qc)qc.textContent=`Q ${cur+1}/${items.length}`;
+}
+$("nav").addEventListener("click",e=>{const b=e.target.closest(".nq");if(b){go(+b.dataset.i);try{if(!matchMedia("(min-width:601px)").matches)$("navBox").open=false}catch(er){}}});
+function go(i){cur=Math.max(0,Math.min(items.length-1,i));st.cur=cur;persist();renderNav();renderQ();$("qBox").scrollIntoView({block:"start",behavior:"smooth"})}
+$("bPrev").addEventListener("click",()=>go(cur-1));
+$("bNext").addEventListener("click",()=>go(cur+1));
+
+function renderQ(){
+  const it=items[cur],a=st.ans[it.id],sec=SECS.find(s=>s.id===it.sec),L="ABCDEFG";
+  let h=`<div class="qhead"><div class="eyebrow">Parte ${sec.id} · ${sec.nome}</div><span class="chip">Questão ${cur+1} de ${items.length} · ${fmt(PTS[it.lvl],1)} val.</span></div>`;
+  if(it.type==="mc"){
+    h+=`<p class="qtxt">${it.txt}</p><div class="opts" role="radiogroup">`;
+    it.ord.forEach((o,k)=>{h+=`<label class="opt${a===o?" sel":""}"><input type="radio" name="q-${it.id}" id="q-${it.id}-${o}" value="${o}"${a===o?" checked":""}><span><span class="k">${L[k]})</span> ${it.opts[o]}</span></label>`});
+    h+=`</div>`;
+  }else if(it.type==="vf"){
+    h+=`<p class="qtxt">${it.txt}</p><div class="vf" role="radiogroup">`;
+    [[true,"Verdadeiro"],[false,"Falso"]].forEach(([v,t])=>{h+=`<label class="opt${a===v?" sel":""}"><input type="radio" name="q-${it.id}" id="q-${it.id}-${v}" value="${v}"${a===v?" checked":""}>${t}</label>`});
+    h+=`</div>`;
+  }else if(it.type==="assoc"){
+    const s=a||[];
+    h+=`<p class="qtxt">${it.txt}</p><div class="assoc">`;
+    it.rord.forEach((ri,k)=>{h+=`<div class="arow"><span><span class="k mono">${k+1}.</span> ${it.rows[ri]}</span><select id="q-${it.id}-${ri}" data-r="${ri}" aria-label="Resposta para a linha ${k+1}"><option value="">Escolha…</option>${it.cols.map((c,ci)=>`<option value="${ci}"${s[ri]===ci?" selected":""}>${esc(c.replace(/_(\w+)/g,"$1"))}</option>`).join("")}</select></div>`});
+    h+=`</div>`;
+  }else if(it.type==="txt"){
+    h+=`<p class="qtxt">${it.txt}</p><label class="f" for="q-${it.id}">A sua resposta<textarea id="q-${it.id}" maxlength="600">${esc(a||"")}</textarea></label>`;
+  }else if(it.type==="num"){
+    const s=a||[];h+=it.html;
+    it.parts.forEach((p,i)=>{
+      if(p.kind==="choice"){h+=`<div class="part"><strong>${p.label}</strong><div class="opts">${p.opts.map((o,k)=>`<label class="opt${s[i]===k?" sel":""}"><input type="radio" name="q-${it.id}-p${i}" id="q-${it.id}-p${i}-${k}" data-p="${i}" value="${k}"${s[i]===k?" checked":""}>${o}</label>`).join("")}</div></div>`}
+      else{h+=`<div class="part"><label class="f" for="q-${it.id}-p${i}"><span>${p.label.replace(/_(\w+)/,"<sub>$1</sub>")}</span></label><div class="unitin"><input type="text" inputmode="decimal" id="q-${it.id}-p${i}" data-p="${i}" value="${esc(s[i]||"")}" autocomplete="off"><span>${p.unit}</span></div></div>`}
+    });
+  }
+  $("qBox").innerHTML=h;
+  $("bPrev").disabled=cur===0;$("bNext").disabled=cur===items.length-1;
+}
+$("qBox").addEventListener("input",onAns);$("qBox").addEventListener("change",onAns);
+function onAns(e){
+  const it=items[cur],t=e.target;if(!t.id||!t.id.startsWith("q-"))return;
+  if(it.type==="mc"){st.ans[it.id]=+t.value}
+  else if(it.type==="vf"){st.ans[it.id]=t.value==="true"}
+  else if(it.type==="assoc"){const s=(st.ans[it.id]||[]).slice();s[+t.dataset.r]=t.value===""?null:+t.value;st.ans[it.id]=s}
+  else if(it.type==="txt"){st.ans[it.id]=t.value}
+  else if(it.type==="num"){const s=(st.ans[it.id]||[]).slice(),p=it.parts[+t.dataset.p];s[+t.dataset.p]=p.kind==="choice"?+t.value:t.value;st.ans[it.id]=s}
+  persist();
+  if(t.type==="radio"){t.closest(".opts,.vf").querySelectorAll(".opt").forEach(l=>l.classList.toggle("sel",l.contains(t)))}
+  if(e.type==="change"||t.type!=="text")renderNav();
+}
+
+/* ====== entrega ====== */
+$("bSubmit").addEventListener("click",()=>{const f=items.filter(it=>!answered(it,st.ans[it.id])).length;
+  $("cText").textContent=f?`Tem ${f} questão(ões) por responder. Depois de entregar não pode alterar nada.`:"Respondeu a todas as questões. Depois de entregar não pode alterar nada.";
+  $("confirm").hidden=false;$("cNo").focus()});
+$("cNo").addEventListener("click",()=>{$("confirm").hidden=true});
+$("cYes").addEventListener("click",()=>{$("confirm").hidden=true;finish("Entregue pelo aluno.")});
+
+function finish(motivo){
+  if(!st||st.status!=="ativo")return;clearInterval(tick);
+  st.status="entregue";st.fim=Date.now();st.motivo=motivo;st.envio={db:"a enviar",mail:CFG.URL_ENVIO?"a enviar":"desligado"};
+  st.code=toCode(st);LS.set(KDONE,st);LS.del(KRUN);
+  try{document.fullscreenElement&&document.exitFullscreen().catch(()=>{})}catch(e){}
+  showDone();send();
+}
+function showDone(){
+  show("scDone");
+  $("dReason").textContent=st.motivo||"";
+  $("dNome").textContent=st.nome;$("dNum").textContent=st.num+" / "+st.turma;
+  const its=build(st.seed);$("dResp").textContent=its.filter(it=>answered(it,st.ans[it.id])).length+" de "+its.length;
+  $("dHoras").textContent=hhmm(st.ini)+" · "+hhmm(st.fim);
+  $("profMail").textContent=CFG.EMAIL;$("dCode").textContent=st.code;
+  const subj=`Teste 6013 cascata – ${st.nome} (n.º ${st.num}, ${st.turma})`;
+  $("bMail").href=`mailto:${CFG.EMAIL}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent("Código de entrega:\n\n"+st.code)}`;
+  paintEnvio();
+}
+function paintEnvio(){
+  const e=st.envio||{},row=(lbl,s)=>{const m={"ok":["ok","Recebido"],"a enviar":["wait","A enviar…"],"falhou":["bad","Não foi possível"],"indisponivel":["wait","Indisponível neste acesso"],"desligado":["wait","Desligado"]}[s]||["wait",s];
+    return `<div class="row"><span class="stamp ${m[0]}">${m[1]}</span><span>${lbl}</span></div>`};
+  $("dEnvio").innerHTML=row("Registo para o professor (página do teste)",e.db)+row("Email automático para o professor",e.mail);
+  const ok=e.db==="ok"||e.mail==="ok";
+  $("fallback").querySelector("h3").textContent=ok?"Cópia de segurança":"O envio automático não funcionou";
+}
+const timeout=(p,ms)=>Promise.race([p,new Promise((_,j)=>setTimeout(()=>j(new Error("timeout")),ms))]);
+async function sendDb(){
+  if(!window.claude||!window.claude.use)return"indisponivel";
+  const db=await timeout(window.claude.use("db"),8000).catch(()=>null),user=await timeout(window.claude.use("user"),8000).catch(()=>null);
+  if(!db||!user)return"indisponivel";
+  const uid=await user.id();if(!uid)return"indisponivel";
+  const c=correct(st),ref=db.doc("entregas/"+uid);
+  let prev={};try{const s=await ref.get();if(s.exists)prev=s.data()||{}}catch(e){}
+  const t=Object.assign({},prev.tentativas||{});
+  t["t"+st.ini]={nome:st.nome,num:st.num,turma:st.turma,ini:st.ini,fim:st.fim,saidas:st.saidas||0,motivo:st.motivo,nota:c.nota,code:st.code};
+  await ref.set({atualizado:Date.now(),nome:st.nome,num:st.num,turma:st.turma,tentativas:t});
+  return"ok";
+}
+async function sendMail(){
+  if(!CFG.URL_ENVIO)return"desligado";
+  const c=correct(st),f=new FormData();
+  f.append("_subject",`[6013 cascata] ${st.nome} – n.º ${st.num} – ${st.turma} – ${fmt(c.nota,2)}/20`);
+  f.append("_template","table");f.append("_captcha","false");
+  f.append("Teste",CFG.NOME);f.append("Nome",st.nome);f.append("Número",st.num);f.append("Turma",st.turma);
+  f.append("Nota (0-20)",fmt(c.nota,2));
+  f.append("Por nível",`Fáceis ${fmt(c.lv.F[0])}/${fmt(c.lv.F[1])} · Médias ${fmt(c.lv.M[0])}/${fmt(c.lv.M[1])} · Difíceis ${fmt(c.lv.D[0])}/${fmt(c.lv.D[1])}`);
+  f.append("Início",new Date(st.ini).toLocaleString("pt-PT"));f.append("Entrega",new Date(st.fim).toLocaleString("pt-PT"));
+  f.append("Motivo",st.motivo);f.append("Saídas da página",String(st.saidas||0));
+  c.det.forEach(d=>f.append(`Q${String(d.n).padStart(2,"0")} ${d.id} (${LVL[d.lvl]})`,`${fmt(d.pts)}/${fmt(d.max)} — resposta: ${d.resp} — correta: ${d.cert}${d.rev?" — REVER":""}`));
+  f.append("Código de entrega",st.code);
+  const r=await timeout(fetch(CFG.URL_ENVIO,{method:"POST",headers:{Accept:"application/json"},body:f}),15000);
+  if(!r.ok)throw new Error("http "+r.status);return"ok";
+}
+async function send(){
+  st.envio={db:"a enviar",mail:CFG.URL_ENVIO?"a enviar":"desligado"};paintEnvio();
+  const [d,m]=await Promise.allSettled([sendDb(),sendMail()]);
+  st.envio.db=d.status==="fulfilled"?d.value:"falhou";st.envio.mail=m.status==="fulfilled"?m.value:"falhou";
+  LS.set(KDONE,st);paintEnvio();
+}
+$("bRetry").addEventListener("click",send);
+$("bCopy").addEventListener("click",()=>{const t=st.code;
+  const sel=()=>{const r=document.createRange();r.selectNodeContents($("dCode"));const s=getSelection();s.removeAllRanges();s.addRange(r);$("copyMsg").textContent="Código selecionado. Use Ctrl+C para copiar."};
+  try{navigator.clipboard.writeText(t).then(()=>{$("copyMsg").textContent="Código copiado."},sel)}catch(e){sel()}});
+$("bHome").addEventListener("click",()=>{show("scStart");initStart()});
+
+/* ====== modo professor ====== */
+let lista=[];
+$("toTeacher").addEventListener("click",()=>{show("scTeacher");$("inPin").focus()});
+$("bBack1").addEventListener("click",()=>show("scStart"));
+$("bBack2").addEventListener("click",()=>{$("tPanel").hidden=true;$("fPin").hidden=false;$("inPin").value="";$("tDetail").innerHTML="";show("scStart")});
+$("fPin").addEventListener("submit",e=>{e.preventDefault();
+  if($("inPin").value!==CFG.PIN){$("pinErr").textContent="PIN errado.";return}
+  $("pinErr").textContent="";$("fPin").hidden=true;$("tPanel").hidden=false;
+  $("tCfg").textContent=`Código de acesso: ${CFG.CODIGO} · Duração: ${CFG.MIN} min · Email: ${CFG.EMAIL}`;
+  loadList();});
+$("bReload").addEventListener("click",loadList);
+async function loadList(){
+  $("tDbMsg").textContent="A carregar…";$("tList").innerHTML="";lista=[];
+  try{
+    if(!window.claude||!window.claude.use)throw new Error("fora");
+    const user=await timeout(window.claude.use("user"),8000).catch(()=>null),db=await timeout(window.claude.use("db"),8000).catch(()=>null);
+    const owner=user?await user.isOwner():false;
+    if(!db||!owner){$("tDbMsg").textContent="A lista de entregas só aparece ao dono desta página, com sessão iniciada no claude.ai. Pode corrigir os códigos recebidos por email na secção abaixo.";return}
+    const q=await db.collection("entregas").get();
+    q.docs.forEach(d=>{const v=d.data()||{};Object.values(v.tentativas||{}).forEach(t=>lista.push(t))});
+    lista.sort((a,b)=>String(a.turma).localeCompare(String(b.turma))||(+a.num||0)-(+b.num||0)||a.ini-b.ini);
+    if(!lista.length){$("tDbMsg").textContent="Ainda não há entregas registadas. Aparecem aqui assim que um aluno entregar.";return}
+    $("tDbMsg").textContent=`${lista.length} entrega(s). Clique numa linha para ver a correção.`;
+    let h=`<table><tr><th>Turma</th><th>N.º</th><th>Nome</th><th>Nota</th><th>Fáceis</th><th>Médias</th><th>Difíceis</th><th>Saídas</th><th>Entrega</th></tr>`;
+    lista.forEach((t,i)=>{let c;try{c=correct(fromCode(t.code))}catch(e){c=null}
+      t._c=c;h+=`<tr class="click" data-i="${i}" tabindex="0"><td>${esc(t.turma)}</td><td>${esc(t.num)}</td><td>${esc(t.nome)}</td><td class="pts">${c?fmt(c.nota):"?"}</td><td>${c?fmt(c.lv.F[0]):""}</td><td>${c?fmt(c.lv.M[0]):""}</td><td>${c?fmt(c.lv.D[0]):""}</td><td>${t.saidas||0}</td><td>${hhmm(t.fim)}</td></tr>`});
+    $("tList").innerHTML=h+`</table>`;
+  }catch(e){$("tDbMsg").textContent="Não foi possível ler as entregas guardadas. Use os códigos recebidos por email."}
+}
+$("tList").addEventListener("click",e=>{const tr=e.target.closest("tr.click");if(tr){const t=lista[+tr.dataset.i];try{detail([fromCode(t.code)])}catch(er){}}});
+$("tList").addEventListener("keydown",e=>{if(e.key==="Enter"){const tr=e.target.closest("tr.click");if(tr)tr.click()}});
+$("bCsv").addEventListener("click",()=>{if(!lista.length)return;
+  const rows=[["Turma","Numero","Nome","Nota","Faceis","Medias","Dificeis","Saidas","Inicio","Entrega"]];
+  lista.forEach(t=>{const c=t._c;rows.push([t.turma,t.num,t.nome,c?fmt(c.nota):"",c?fmt(c.lv.F[0]):"",c?fmt(c.lv.M[0]):"",c?fmt(c.lv.D[0]):"",t.saidas||0,new Date(t.ini).toLocaleString("pt-PT"),new Date(t.fim).toLocaleString("pt-PT")])});
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(";")).join("\n");
+  try{navigator.clipboard.writeText(csv).then(()=>{$("tDbMsg").textContent="Tabela copiada. Cole-a numa folha de cálculo."},()=>{$("tDbMsg").textContent="Não foi possível copiar neste navegador."})}catch(e){}});
+$("bDecode").addEventListener("click",()=>{
+  const lines=$("inCode").value.split(/\n+/).map(s=>s.trim()).filter(Boolean);const recs=[];let bad=0;
+  lines.forEach(l=>{const m=l.match(/C6013\.[A-Za-z0-9_-]+/);if(!m){bad++;return}try{recs.push(fromCode(m[0]))}catch(e){bad++}});
+  $("codeErr").textContent=bad?`${bad} código(s) inválido(s) ou incompletos. Verifique se copiou o código inteiro.`:"";
+  if(recs.length)detail(recs);});
+function detail(recs){
+  $("tDetail").innerHTML=recs.map(rec=>{const c=correct(rec);
+    let h=`<div class="panel stack"><div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="eyebrow">${esc(rec.turma)} · n.º ${esc(rec.num)}</div><h2>${esc(rec.nome)}</h2>
+      <p class="muted">${hhmm(rec.ini)} → ${hhmm(rec.fim)} · saídas da página: ${rec.saidas||0} · ${esc(rec.motivo||"")}</p></div><div class="big">${fmt(c.nota)}<span class="muted" style="font-size:1rem"> / 20</span></div></div>
+      <p class="muted">Fáceis ${fmt(c.lv.F[0])}/${fmt(c.lv.F[1])} · Médias ${fmt(c.lv.M[0])}/${fmt(c.lv.M[1])} · Difíceis ${fmt(c.lv.D[0])}/${fmt(c.lv.D[1])}. As respostas diretas (parte D) têm correção automática por palavras-chave: confirme-as.</p>
+      <div class="tbl"><table><tr><th>Q</th><th>Nível</th><th>Resposta do aluno</th><th>Resposta correta</th><th>Pontos</th></tr>`;
+    c.det.forEach(d=>{const cl=d.pts>=d.max?"full":d.pts===0?"zero":"part";
+      h+=`<tr><td class="mono">${d.n}<br><span class="muted">${d.sec}·${d.id}</span></td><td><span class="lvl">${LVL[d.lvl]}</span></td><td>${esc(d.resp)}${d.rev?' <span class="lvl">rever</span>':""}</td><td>${esc(d.cert)}</td><td class="pts ${cl}">${fmt(d.pts)}/${fmt(d.max)}</td></tr>`});
+    return h+`</table></div></div>`}).join("");
+  $("tDetail").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+/* ====== arranque ====== */
+initStart();
+(function(){const r=LS.get(KRUN);if(r&&r.status==="ativo"&&r.ini+CFG.MIN*60000<Date.now()){st=r;items=build(st.seed);finish("Tempo esgotado: o teste foi entregue automaticamente.")}})();
+</script>
